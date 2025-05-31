@@ -5,7 +5,7 @@ function printTree(dirPath, indent = '') {
   const items = fs.readdirSync(dirPath);
 
   for (const item of items) {
-    if (item === 'node_modules') continue; // Skip node_modules
+    if (['node_modules', '.expo', '.git'].includes(item)) continue; // Skip unwanted folders
 
     const fullPath = path.join(dirPath, item);
     const isDirectory = fs.statSync(fullPath).isDirectory();
