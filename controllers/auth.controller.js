@@ -13,8 +13,6 @@ exports.register = async (req, res) => {
       password,
     } = req.body;
 
-    const fullName = `${firstName} ${lastName}`.trim(); // ✅ Combine names
-
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
     if (existingUser) {
@@ -26,7 +24,8 @@ exports.register = async (req, res) => {
 
     // Create verified user (OTP skipped)
     const user = new User({
-      fullName,
+      firstName,
+      lastName,
       email,
       phone,
       passwordHash: hashedPassword,
@@ -75,7 +74,8 @@ exports.login = async (req, res) => {
       token,
       user: {
         id: user._id,
-        fullName: user.fullName,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         phone: user.phone,
         isVerified: user.isVerified,

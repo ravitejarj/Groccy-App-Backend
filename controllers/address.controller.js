@@ -5,7 +5,7 @@ exports.createAddress = async (req, res) => {
   try {
     const address = new Address({
       ...req.body,
-      userId: req.user.userId, // ✅ from JWT
+      userId: req.body.userId || '665c06e5f5177c2b4b16d2e8', // 🛠 Replace with valid test user _id
     });
     await address.save();
     res.status(201).json(address);

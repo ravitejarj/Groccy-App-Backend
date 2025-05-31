@@ -7,14 +7,6 @@ const addressSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    fullName: {
-      type: String,
-      required: true,
-    },
-    phone: {
-      type: String,
-      required: true,
-    },
     label: {
       type: String,
       default: "Home",
@@ -22,6 +14,10 @@ const addressSchema = new mongoose.Schema(
     street: {
       type: String,
       required: true,
+    },
+    apartment: {
+      type: String,
+      default: "",
     },
     city: {
       type: String,
@@ -41,8 +37,9 @@ const addressSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-module.exports = mongoose.model("Address", addressSchema);
+module.exports = mongoose.model("UserAddress", addressSchema, "userAddresses");
+

@@ -9,7 +9,7 @@ const {
 const verifyToken = require("../middleware/authMiddleware");
 
 // Create new address
-router.post("/", verifyToken, createAddress);
+router.post("/", createAddress);
 
 // Get all addresses for a user
 router.get("/:userId", verifyToken, getUserAddresses);
