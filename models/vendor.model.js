@@ -13,7 +13,7 @@ const vendorSchema = new mongoose.Schema(
     image: { type: String },
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
-    deliveryRadiusInMiles: { type: Number, default: 5 },
+    deliveryRadiusInMiles: { type: Number, default: 20 },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }
