@@ -54,7 +54,7 @@ exports.deleteVendor = async (req, res) => {
   }
 };
 
-// Haversine filter: GET /vendors/nearby?lat=...&lng=...
+// Haversine filter: GET /vendors/nearby?lat=...&lng=...&storeType=...
 function getDistanceFromLatLonInMiles(lat1, lon1, lat2, lon2) {
   const R = 3958.8;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -70,13 +70,15 @@ function getDistanceFromLatLonInMiles(lat1, lon1, lat2, lon2) {
 
 exports.getNearbyVendors = async (req, res) => {
   try {
-    const { lat, lng } = req.query;
+    const { lat, lng, storeType } = req.query;
     if (!lat || !lng) return res.status(400).json({ message: "Missing coordinates" });
 
     const userLat = parseFloat(lat);
     const userLng = parseFloat(lng);
 
-    const vendors = await Vendor.find({ isActive: true });
+    // ✅ Filter by storeType if provided
+    const filter = storeType ? { storeType, isActive: true } : { isActive: true };
+    const vendors = await Vendor.find(filter);
 
     const nearby = vendors.filter(v => {
       if (v.latitude && v.longitude && v.deliveryRadiusInMiles) {
