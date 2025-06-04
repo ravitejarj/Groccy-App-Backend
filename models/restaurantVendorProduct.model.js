@@ -34,5 +34,4 @@ const vendorProductSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("VendorProduct", vendorProductSchema, "vendorProducts");
-
+module.exports = mongoose.model("restaurantvendorproducts", vendorProductSchema);

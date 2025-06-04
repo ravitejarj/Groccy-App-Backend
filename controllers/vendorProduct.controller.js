@@ -1,4 +1,4 @@
-const VendorProduct = require("../models/vendorProduct.model");
+const VendorProduct = require("../models/groceryVendorProduct.model");
 
 // Create a new product
 exports.createVendorProduct = async (req, res) => {

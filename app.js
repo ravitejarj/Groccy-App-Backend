@@ -15,6 +15,7 @@ const ratingRoutes = require("./routes/rating.routes");
 const serviceRoutes = require("./routes/service.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const uploadRoutes = require("./routes/upload.routes");
+const catalogRoutes = require("./routes/catalog.routes");
 
 // Use all routes
 app.use("/api/auth", authRoutes);
@@ -28,6 +29,7 @@ app.use("/api/ratings", ratingRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/catalog", catalogRoutes);
 
 // Health check root endpoint
 app.get("/", (req, res) => res.send("Groccy backend running"));
