@@ -3,7 +3,7 @@ const Product = require("../models/Product");
 const GroceryCategory = require("../models/groceryCategory.model");
 const GrocerySubcategory = require("../models/grocerySubcategory.model");
 
-// GET /catalog/:vendorId/structure
+// ✅ GET /catalog/:vendorId/structure
 exports.getVendorStructure = async (req, res) => {
   try {
     const { vendorId } = req.params;
@@ -29,7 +29,7 @@ exports.getVendorStructure = async (req, res) => {
   }
 };
 
-// GET /catalog/:vendorId/products?subcategoryId=...
+// ✅ GET /catalog/:vendorId/products?subcategoryId=...
 exports.getVendorCatalogProducts = async (req, res) => {
   try {
     const { vendorId } = req.params;
@@ -63,6 +63,32 @@ exports.getVendorCatalogProducts = async (req, res) => {
     res.json(enrichedProducts);
   } catch (err) {
     console.error("Error in getVendorCatalogProducts:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ✅ NEW: GET /catalog/product/:id
+exports.getSingleProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
+    if (!product || !product.isActive) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const vendorProduct = await GroceryVendorProduct.findOne({
+      productId: id,
+      isActive: true
+    });
+
+    res.json({
+      ...product.toObject(),
+      price: vendorProduct?.price || null,
+      stock: vendorProduct?.stock || 0,
+    });
+  } catch (err) {
+    console.error("Error in getSingleProduct:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };
