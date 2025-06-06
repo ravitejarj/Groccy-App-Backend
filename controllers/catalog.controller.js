@@ -2,6 +2,7 @@ const GroceryVendorProduct = require("../models/groceryVendorProduct.model");
 const Product = require("../models/Product");
 const GroceryCategory = require("../models/groceryCategory.model");
 const GrocerySubcategory = require("../models/grocerySubcategory.model");
+const Vendor = require("../models/vendor.model"); // ✅ Add this
 
 // ✅ GET /catalog/:vendorId/structure
 exports.getVendorStructure = async (req, res) => {
@@ -56,7 +57,7 @@ exports.getVendorCatalogProducts = async (req, res) => {
       return {
         ...product.toObject(),
         price: vendorData?.price,
-        stock: vendorData?.stock
+        stock: vendorData?.stock,
       };
     });
 
@@ -67,7 +68,7 @@ exports.getVendorCatalogProducts = async (req, res) => {
   }
 };
 
-// ✅ NEW: GET /catalog/product/:id
+// ✅ GET /catalog/product/:id → now includes vendorName
 exports.getSingleProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -79,13 +80,34 @@ exports.getSingleProduct = async (req, res) => {
 
     const vendorProduct = await GroceryVendorProduct.findOne({
       productId: id,
-      isActive: true
+      isActive: true,
     });
 
+    const category = await GroceryCategory.findById(product.categoryId);
+    const subcategory = await GrocerySubcategory.findById(product.subcategoryId);
+
+    let vendorName = null;
+    if (vendorProduct?.vendorId) {
+      const vendor = await require("../models/vendor.model").findById(vendorProduct.vendorId);
+      vendorName = vendor?.name || null;
+    }
+
     res.json({
-      ...product.toObject(),
+      _id: product._id,
+      name: product.name,
+      description: product.description,
+      images: product.images,
       price: vendorProduct?.price || null,
       stock: vendorProduct?.stock || 0,
+      weight: vendorProduct?.weight || "1 lb",
+      categoryId: product.categoryId,
+      categoryName: category?.name || null,
+      subcategoryId: product.subcategoryId,
+      subcategoryName: subcategory?.name || null,
+      vendorName, // ✅ added
+      isActive: product.isActive,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
     });
   } catch (err) {
     console.error("Error in getSingleProduct:", err);

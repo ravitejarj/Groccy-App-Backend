@@ -1,23 +1,17 @@
 const mongoose = require("mongoose");
 
-const vendorProductSchema = new mongoose.Schema(
+const groceryVendorProductSchema = new mongoose.Schema(
   {
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
       required: true,
     },
-    categoryId: {
+    productId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
+      ref: "Product",
       required: true,
     },
-    name: {
-      type: String,
-      required: true,
-    },
-    description: String,
-    images: [String],
     price: {
       type: Number,
       required: true,
@@ -26,12 +20,18 @@ const vendorProductSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    weight: {
+      type: String, // Example: "1 lb" or "500 g"
+      default: "1 lb",
+    },
     isActive: {
       type: Boolean,
       default: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true, // Adds createdAt and updatedAt
+  }
 );
 
-module.exports = mongoose.model("restaurantvendorproducts", vendorProductSchema);
+module.exports = mongoose.model("GroceryVendorProduct", groceryVendorProductSchema);
