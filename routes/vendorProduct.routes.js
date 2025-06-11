@@ -5,7 +5,8 @@ const {
   getVendorProducts,
   getVendorProductById,
   updateVendorProduct,
-  deleteVendorProduct
+  deleteVendorProduct,
+  searchVendorProducts,
 } = require("../controllers/vendorProduct.controller");
 const verifyToken = require("../middleware/authMiddleware");
 
@@ -14,6 +15,9 @@ router.post("/", verifyToken, createVendorProduct);
 
 // Get all or filter by vendor
 router.get("/", getVendorProducts);
+
+// Search products by vendorId + query
+router.get("/search", searchVendorProducts);
 
 // Get one by ID
 router.get("/:id", getVendorProductById);

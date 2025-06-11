@@ -52,3 +52,38 @@ exports.deleteVendorProduct = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Search vendor products by name
+exports.searchVendorProducts = async (req, res) => {
+  try {
+    const { vendorId, query } = req.query;
+
+    if (!vendorId || !query) {
+      return res.status(400).json({ message: "Missing vendorId or query" });
+    }
+
+    const regex = new RegExp(query, "i"); // case-insensitive match
+
+    const products = await VendorProduct.find({ vendorId })
+      .populate({
+        path: "productId",
+        match: { name: { $regex: regex } },
+        select: "name images",
+      })
+      .limit(5);
+
+    const filtered = products
+      .filter(p => p.productId)
+      .map(p => ({
+        _id: p.productId._id,
+        name: p.productId.name,
+        images: p.productId.images,
+        price: p.price,
+      }));
+
+    res.json(filtered);
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
