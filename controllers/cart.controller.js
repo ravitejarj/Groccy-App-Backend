@@ -1,150 +1,143 @@
-const Cart = require('../models/cart.model');
-const mongoose = require('mongoose');
+const Cart = require("../models/cart.model");
+const VendorProduct = require("../models/groceryVendorProduct.model");
+const Product = require("../models/Product");
 
-// ➕ Add or Update Item in Cart
+// ✅ Add or update cart item
 exports.addToCart = async (req, res) => {
   try {
     const { userId, vendorId, productId, name, price, quantity } = req.body;
 
-    if (!userId || !vendorId || !productId || !quantity || !name || !price) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    if (!userId || !vendorId || !productId || !name || !price || !quantity) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    let cart = await Cart.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      vendorId: new mongoose.Types.ObjectId(vendorId),
-    });
+    const productPrice = parseFloat(price);
+    if (isNaN(productPrice)) {
+      return res.status(400).json({ error: "Invalid price format" });
+    }
+
+    let cart = await Cart.findOne({ userId, vendorId });
 
     if (!cart) {
       cart = new Cart({
         userId,
         vendorId,
-        items: [{ productId, name, price, quantity }],
-        total: price * quantity,
+        items: [{ productId, name, price: productPrice, quantity }],
+        total: parseFloat((productPrice * quantity).toFixed(2)),
       });
     } else {
-      const itemIndex = cart.items.findIndex(
-        item => item.productId.toString() === productId
+      const existingItem = cart.items.find(
+        (item) => item.productId.toString() === productId
       );
 
-      if (itemIndex > -1) {
-        cart.items[itemIndex].quantity += quantity;
+      if (existingItem) {
+        existingItem.quantity += quantity;
+        existingItem.price = productPrice;
       } else {
-        cart.items.push({ productId, name, price, quantity });
+        cart.items.push({ productId, name, price: productPrice, quantity });
       }
 
-      cart.total = cart.items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
+      cart.total = parseFloat(
+        cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
       );
     }
 
     await cart.save();
-    res.status(200).json({ message: 'Cart updated', cart });
-  } catch (error) {
-    console.error('Add to cart error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(200).json(cart);
+  } catch (err) {
+    console.error("Add to cart error:", err);
+    res.status(500).json({ error: "Failed to add to cart" });
   }
 };
 
-// 🧾 Get Cart by User ID (fixed with ObjectId conversion)
+// ✅ Get cart with product image (updated to use Product collection)
 exports.getCartByUser = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const cart = await Cart.find({
-      userId: new mongoose.Types.ObjectId(userId),
-    });
+    const cart = await Cart.find({ userId });
 
-    if (!cart || cart.length === 0) {
-      return res.status(404).json({ message: 'Cart not found' });
-    }
+    const populated = await Promise.all(
+      cart.map(async (entry) => {
+        const detailedItems = await Promise.all(
+          entry.items.map(async (item) => {
+            const productMaster = await Product.findById(item.productId);
+            return {
+              ...item.toObject(),
+              image: productMaster?.images?.[0] || null,
+            };
+          })
+        );
 
-    res.status(200).json(cart);
-  } catch (error) {
-    console.error('Get cart error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+        return {
+          ...entry.toObject(),
+          items: detailedItems,
+        };
+      })
+    );
+
+    res.json(populated);
+  } catch (err) {
+    console.error("Get cart error:", err);
+    res.status(500).json({ error: "Failed to fetch cart" });
   }
 };
 
-// 🖊️ Update Item Quantity
+// ✅ Update item quantity
 exports.updateCartItem = async (req, res) => {
   try {
     const { userId, vendorId, productId, quantity } = req.body;
 
-    let cart = await Cart.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      vendorId: new mongoose.Types.ObjectId(vendorId),
-    });
+    const cart = await Cart.findOne({ userId, vendorId });
+    if (!cart) return res.status(404).json({ error: "Cart not found" });
 
-    if (!cart) return res.status(404).json({ message: 'Cart not found' });
+    const item = cart.items.find((i) => i.productId.toString() === productId);
+    if (!item) return res.status(404).json({ error: "Item not found" });
 
-    const itemIndex = cart.items.findIndex(
-      item => item.productId.toString() === productId
-    );
+    item.quantity = quantity;
 
-    if (itemIndex === -1) {
-      return res.status(404).json({ message: 'Item not found in cart' });
-    }
-
-    cart.items[itemIndex].quantity = quantity;
-
-    // Recalculate total
-    cart.total = cart.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
+    cart.total = parseFloat(
+      cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
     );
 
     await cart.save();
-    res.status(200).json({ message: 'Cart updated', cart });
-  } catch (error) {
-    console.error('Update cart item error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.json(cart);
+  } catch (err) {
+    console.error("Update cart item error:", err);
+    res.status(500).json({ error: "Failed to update item" });
   }
 };
 
-// ❌ Remove Item from Cart
+// ✅ Remove single item
 exports.removeCartItem = async (req, res) => {
   try {
     const { userId, vendorId, productId } = req.body;
 
-    let cart = await Cart.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      vendorId: new mongoose.Types.ObjectId(vendorId),
-    });
+    const cart = await Cart.findOne({ userId, vendorId });
+    if (!cart) return res.status(404).json({ error: "Cart not found" });
 
-    if (!cart) return res.status(404).json({ message: 'Cart not found' });
+    cart.items = cart.items.filter((i) => i.productId.toString() !== productId);
 
-    cart.items = cart.items.filter(
-      item => item.productId.toString() !== productId
-    );
-
-    // Recalculate total
-    cart.total = cart.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
+    cart.total = parseFloat(
+      cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
     );
 
     await cart.save();
-    res.status(200).json({ message: 'Item removed', cart });
-  } catch (error) {
-    console.error('Remove cart item error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.json(cart);
+  } catch (err) {
+    console.error("Remove item error:", err);
+    res.status(500).json({ error: "Failed to remove item" });
   }
 };
 
-// 🧹 Clear Cart
+// ✅ Clear all items
 exports.clearCart = async (req, res) => {
   try {
     const { userId } = req.params;
-
-    await Cart.deleteMany({
-      userId: new mongoose.Types.ObjectId(userId),
-    });
-
-    res.status(200).json({ message: 'Cart cleared' });
-  } catch (error) {
-    console.error('Clear cart error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    await Cart.deleteMany({ userId });
+    res.json({ message: "Cart cleared" });
+  } catch (err) {
+    console.error("Clear cart error:", err);
+    res.status(500).json({ error: "Failed to clear cart" });
   }
 };
