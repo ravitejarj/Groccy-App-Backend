@@ -2,17 +2,17 @@ const Cart = require("../models/cart.model");
 const VendorProduct = require("../models/groceryVendorProduct.model");
 const Product = require("../models/Product");
 
-// ✅ Add or update cart item
+// ✅ Add or update cart item (always add +1)
 exports.addToCart = async (req, res) => {
   try {
-    const { userId, vendorId, productId, name, price, quantity } = req.body;
+    const { userId, vendorId, productId, name, price } = req.body;
 
-    if (!userId || !vendorId || !productId || !name || !price || !quantity) {
+    if (!userId || !vendorId || !productId || !name || !price) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const productPrice = parseFloat(price);
-    if (isNaN(productPrice)) {
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice)) {
       return res.status(400).json({ error: "Invalid price format" });
     }
 
@@ -22,8 +22,8 @@ exports.addToCart = async (req, res) => {
       cart = new Cart({
         userId,
         vendorId,
-        items: [{ productId, name, price: productPrice, quantity }],
-        total: parseFloat((productPrice * quantity).toFixed(2)),
+        items: [{ productId, name, price: parsedPrice, quantity: 1 }],
+        total: parsedPrice,
       });
     } else {
       const existingItem = cart.items.find(
@@ -31,14 +31,14 @@ exports.addToCart = async (req, res) => {
       );
 
       if (existingItem) {
-        existingItem.quantity += quantity;
-        existingItem.price = productPrice;
+        existingItem.quantity += 1;
       } else {
-        cart.items.push({ productId, name, price: productPrice, quantity });
+        cart.items.push({ productId, name, price: parsedPrice, quantity: 1 });
       }
 
-      cart.total = parseFloat(
-        cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
+      cart.total = cart.items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
       );
     }
 
@@ -50,7 +50,7 @@ exports.addToCart = async (req, res) => {
   }
 };
 
-// ✅ Get cart with product image (updated to use Product collection)
+// ✅ Get cart with product image
 exports.getCartByUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -88,16 +88,26 @@ exports.updateCartItem = async (req, res) => {
   try {
     const { userId, vendorId, productId, quantity } = req.body;
 
+    if (!userId || !vendorId || !productId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
     const cart = await Cart.findOne({ userId, vendorId });
     if (!cart) return res.status(404).json({ error: "Cart not found" });
 
     const item = cart.items.find((i) => i.productId.toString() === productId);
     if (!item) return res.status(404).json({ error: "Item not found" });
 
-    item.quantity = quantity;
+    if (quantity <= 0) {
+      // Optional: remove item if quantity is zero
+      cart.items = cart.items.filter((i) => i.productId.toString() !== productId);
+    } else {
+      item.quantity = quantity;
+    }
 
-    cart.total = parseFloat(
-      cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
+    cart.total = cart.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
     );
 
     await cart.save();
@@ -118,8 +128,9 @@ exports.removeCartItem = async (req, res) => {
 
     cart.items = cart.items.filter((i) => i.productId.toString() !== productId);
 
-    cart.total = parseFloat(
-      cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
+    cart.total = cart.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
     );
 
     await cart.save();
