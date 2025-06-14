@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Vendor = require('../models/vendor.model');
 const { calculateDistanceInMiles } = require('../utils/distance');
+const vendorController = require('../controllers/vendor.controller');
 
 router.get('/nearby', async (req, res) => {
   try {
@@ -33,5 +34,8 @@ router.get('/nearby', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// ✅ NEW: Get vendor by ID (for cart store name)
+router.get('/:id', vendorController.getVendorById);
 
 module.exports = router;
