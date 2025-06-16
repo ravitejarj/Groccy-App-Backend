@@ -8,6 +8,11 @@ const orderItemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
+  orderId: {
+    type: String,
+    required: true,
+    unique: true
+  },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", required: true },
   items: [orderItemSchema],
