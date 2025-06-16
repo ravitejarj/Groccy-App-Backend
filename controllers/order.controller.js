@@ -2,6 +2,9 @@ const Order = require('../models/order.model');
 const Cart = require('../models/cart.model');
 const UserAddress = require('../models/address.model');
 
+// ✅ Register the model so Mongoose can populate it
+const GroceryVendorProduct = require('../models/groceryVendorProduct.model');
+
 // ✅ Create Order from Cart
 exports.createOrder = async (req, res) => {
   try {
@@ -90,7 +93,7 @@ exports.getOrderByOrderId = async (req, res) => {
   try {
     const order = await Order.findOne({ orderId: req.params.orderId })
       .populate('vendorId', 'name') // just get store name
-      .populate('items.productId', 'name');
+      .populate('items.productId', 'name'); // now registered ✅
 
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
