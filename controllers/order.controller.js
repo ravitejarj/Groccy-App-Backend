@@ -2,9 +2,6 @@ const Order = require('../models/order.model');
 const Cart = require('../models/cart.model');
 const UserAddress = require('../models/address.model');
 
-// ✅ Register the model so Mongoose can populate it
-const GroceryVendorProduct = require('../models/groceryVendorProduct.model');
-
 // ✅ Create Order from Cart
 exports.createOrder = async (req, res) => {
   try {
