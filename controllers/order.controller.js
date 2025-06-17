@@ -6,7 +6,12 @@ const Product = require('../models/Product'); // ✅ Added
 // ✅ Create Order from Cart
 exports.createOrder = async (req, res) => {
   try {
-    const { userId, paymentMethod = 'Card' } = req.body;
+    const {
+      userId,
+      paymentMethod = 'Card',
+      cardLast4,           // ✅ New
+      cardBrand            // ✅ New
+    } = req.body;
 
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
@@ -31,7 +36,7 @@ exports.createOrder = async (req, res) => {
           name: item.name,
           price: item.price,
           quantity: item.quantity,
-          image, // ✅ New field
+          image,
         };
       })
     );
@@ -46,12 +51,14 @@ exports.createOrder = async (req, res) => {
       orderId: generatedOrderId,
       userId,
       vendorId: cart.vendorId,
-      items: enrichedItems, // ✅ used enriched items
+      items: enrichedItems,
       total: cart.total,
       subTotal: cart.total,
       deliveryFee: 2.0,
       taxes: 0.5,
       paymentMethod,
+      cardLast4,          // ✅ Save last 4 digits
+      cardBrand,          // ✅ Save brand
       status: 'confirmed',
       street: address.street,
       apartment: address.apartment,

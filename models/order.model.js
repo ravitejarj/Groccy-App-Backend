@@ -21,15 +21,20 @@ const orderSchema = new mongoose.Schema({
   subTotal: { type: Number }, // Optional if needed
   deliveryFee: { type: Number, default: 0 },
   taxes: { type: Number, default: 0 },
-  status: {
-    type: String,
-    default: "confirmed", // confirmed, dispatched, delivered, cancelled
-  },
+
   paymentMethod: {
     type: String,
     enum: ["Card"],
     default: "Card"
   },
+  cardLast4: { type: String }, // ✅ New field added
+  cardBrand: { type: String }, // ✅ New field added
+
+  status: {
+    type: String,
+    default: "confirmed", // confirmed, dispatched, delivered, cancelled
+  },
+
   street: String,
   apartment: String,
   city: String,
