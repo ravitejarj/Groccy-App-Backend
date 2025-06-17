@@ -12,26 +12,23 @@ exports.getOrdersTabData = async (req, res) => {
       orders.map(async (order) => {
         const enrichedItems = await Promise.all(
           order.items.map(async (item) => {
-            let vendorProduct = await GroceryVendorProduct.findById(item.productId);
             let type = 'grocery';
+            let vendorProduct = await GroceryVendorProduct.findById(item.productId);
 
             if (!vendorProduct) {
               vendorProduct = await RestaurantVendorProduct.findById(item.productId);
               type = 'restaurant';
             }
 
-            let productData = null;
-            if (vendorProduct && vendorProduct.productId) {
-              productData = await Product.findById(vendorProduct.productId);
-            }
+            const masterProduct = vendorProduct
+              ? await Product.findById(vendorProduct.productId)
+              : null;
 
             return {
-              name: productData?.name || item.name || 'Unknown',
+              name: item.name,
               quantity: item.quantity,
               price: item.price,
-              image:
-                productData?.images?.[0] ||
-                'https://res.cloudinary.com/dh5liqius/image/upload/v1716406939/groccy/temp/dummy.png',
+              image: masterProduct?.images?.[0] || item.image || 'https://res.cloudinary.com/dh5liqius/image/upload/v1716406939/groccy/temp/dummy.png',
               type,
             };
           })
@@ -44,6 +41,8 @@ exports.getOrdersTabData = async (req, res) => {
           status: order.status,
           total: order.total,
           createdAt: order.createdAt,
+          cardBrand: order.cardBrand || '',
+          cardLast4: order.cardLast4 || '',
           items: enrichedItems,
         };
       })
@@ -52,6 +51,6 @@ exports.getOrdersTabData = async (req, res) => {
     res.json(enrichedOrders);
   } catch (err) {
     console.error('❌ getOrdersTabData error:', err);
-    res.status(500).json({ error: 'Failed to fetch orders tab data' });
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
 };
