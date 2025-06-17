@@ -27,6 +27,7 @@ const orderSchema = new mongoose.Schema({
     default: "Card"
   },
   street: String,
+  apartment: String, // ✅ added
   city: String,
   state: String,
   zipCode: String

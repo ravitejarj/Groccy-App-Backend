@@ -36,6 +36,7 @@ exports.createOrder = async (req, res) => {
       paymentMethod,
       status: 'confirmed',
       street: address.street,
+      apartment: address.apartment, // ✅ included
       city: address.city,
       state: address.state,
       zipCode: address.zipCode,
