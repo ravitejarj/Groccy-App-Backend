@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const groceryVendorProductSchema = new mongoose.Schema(
+const restaurantVendorProductSchema = new mongoose.Schema(
   {
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -34,4 +34,5 @@ const groceryVendorProductSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("GroceryVendorProduct", groceryVendorProductSchema);
+// ✅ Fixed: Correct model name
+module.exports = mongoose.model("RestaurantVendorProduct", restaurantVendorProductSchema);
