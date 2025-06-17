@@ -1,6 +1,7 @@
 const Order = require('../models/order.model');
 const Cart = require('../models/cart.model');
 const UserAddress = require('../models/address.model');
+const Product = require('../models/Product'); // ✅ Added
 
 // ✅ Create Order from Cart
 exports.createOrder = async (req, res) => {
@@ -19,6 +20,23 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ error: 'No address found' });
     }
 
+    // ✅ Enrich cart items with image
+    const enrichedItems = await Promise.all(
+      cart.items.map(async (item) => {
+        const product = await Product.findById(item.productId);
+        const image = product?.images?.[0] || null;
+
+        return {
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image, // ✅ New field
+        };
+      })
+    );
+
+    // ✅ Generate order ID
     const today = new Date();
     const datePart = today.toISOString().slice(2, 10).replace(/-/g, '');
     const randomPart = Math.floor(100000 + Math.random() * 900000);
@@ -28,7 +46,7 @@ exports.createOrder = async (req, res) => {
       orderId: generatedOrderId,
       userId,
       vendorId: cart.vendorId,
-      items: cart.items,
+      items: enrichedItems, // ✅ used enriched items
       total: cart.total,
       subTotal: cart.total,
       deliveryFee: 2.0,
@@ -36,7 +54,7 @@ exports.createOrder = async (req, res) => {
       paymentMethod,
       status: 'confirmed',
       street: address.street,
-      apartment: address.apartment, // ✅ included
+      apartment: address.apartment,
       city: address.city,
       state: address.state,
       zipCode: address.zipCode,
@@ -90,8 +108,8 @@ exports.updateOrderStatus = async (req, res) => {
 exports.getOrderByOrderId = async (req, res) => {
   try {
     const order = await Order.findOne({ orderId: req.params.orderId })
-      .populate('vendorId', 'name') // just get store name
-      .populate('items.productId', 'name'); // now registered ✅
+      .populate('vendorId', 'name')
+      .populate('items.productId', 'name');
 
     if (!order) return res.status(404).json({ error: 'Order not found' });
 

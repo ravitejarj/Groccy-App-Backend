@@ -4,7 +4,8 @@ const orderItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: "GroceryVendorProduct" },
   name: String,
   price: Number,
-  quantity: Number
+  quantity: Number,
+  image: String, // ✅ New field added
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
@@ -17,6 +18,9 @@ const orderSchema = new mongoose.Schema({
   vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", required: true },
   items: [orderItemSchema],
   total: { type: Number, required: true },
+  subTotal: { type: Number }, // Optional if needed
+  deliveryFee: { type: Number, default: 0 },
+  taxes: { type: Number, default: 0 },
   status: {
     type: String,
     default: "confirmed", // confirmed, dispatched, delivered, cancelled
@@ -27,7 +31,7 @@ const orderSchema = new mongoose.Schema({
     default: "Card"
   },
   street: String,
-  apartment: String, // ✅ added
+  apartment: String,
   city: String,
   state: String,
   zipCode: String
