@@ -53,7 +53,8 @@ exports.deleteVendorProduct = async (req, res) => {
   }
 };
 
-// Search vendor products by name
+
+// Search vendor products by name only (from groceryvendorproducts)
 exports.searchVendorProducts = async (req, res) => {
   try {
     const { vendorId, query } = req.query;
@@ -62,26 +63,17 @@ exports.searchVendorProducts = async (req, res) => {
       return res.status(400).json({ message: "Missing vendorId or query" });
     }
 
-    const regex = new RegExp(query, "i"); // case-insensitive match
+    const regex = new RegExp(query, "i");
 
-    const products = await VendorProduct.find({ vendorId })
-      .populate({
-        path: "productId",
-        match: { name: { $regex: regex } },
-        select: "name images",
-      })
+    const products = await VendorProduct.find({
+      vendorId,
+      isActive: true,
+      name: { $regex: regex },
+    })
+      .select("_id productId name price stock") // ✅ add productId
       .limit(5);
 
-    const filtered = products
-      .filter(p => p.productId)
-      .map(p => ({
-        _id: p.productId._id,
-        name: p.productId.name,
-        images: p.productId.images,
-        price: p.price,
-      }));
-
-    res.json(filtered);
+    res.json(products);
   } catch (err) {
     console.error("Search error:", err);
     res.status(500).json({ message: "Server error" });

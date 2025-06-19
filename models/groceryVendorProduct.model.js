@@ -11,6 +11,9 @@ const vendorProductSchema = new mongoose.Schema({
     ref: "Product",
     required: true,
   },
+  name: {
+    type: String, // ✅ Used for search
+  },
   price: {
     type: Number,
     required: true,
@@ -27,9 +30,8 @@ const vendorProductSchema = new mongoose.Schema({
   updatedAt: Date,
 });
 
-// ✅ Fix: model name for `ref` + collection name
 module.exports = mongoose.model(
-  "GroceryVendorProduct",           // Mongoose model name (used in ref)
+  "GroceryVendorProduct",
   vendorProductSchema,
-  "groceryvendorproducts"          // Actual MongoDB collection name
+  "groceryvendorproducts"
 );
