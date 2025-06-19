@@ -1,7 +1,7 @@
 const Order = require('../models/order.model');
-const GroceryVendorProduct = require('../models/groceryVendorProduct.model');
+const GroceryVendorProduct = require('../models/grocery/vendorProduct.model');
 const RestaurantVendorProduct = require('../models/restaurantVendorProduct.model');
-const Product = require('../models/Product');
+const Product = require('../models/grocery/product.model');
 
 exports.getOrdersTabData = async (req, res) => {
   try {

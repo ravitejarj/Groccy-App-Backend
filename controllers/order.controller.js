@@ -1,7 +1,7 @@
 const Order = require('../models/order.model');
 const Cart = require('../models/cart.model');
 const UserAddress = require('../models/address.model');
-const Product = require('../models/Product'); // ✅ Added
+const Product = require('../models/grocery/product.model');
 
 // ✅ Create Order from Cart
 exports.createOrder = async (req, res) => {

@@ -1,8 +1,8 @@
-const GroceryVendorProduct = require("../models/groceryVendorProduct.model");
-const Product = require("../models/Product");
-const GroceryCategory = require("../models/groceryCategory.model");
-const GrocerySubcategory = require("../models/grocerySubcategory.model");
-const Vendor = require("../models/vendor.model"); // ✅ Add this
+const Vendor = require("../../models/vendor.model");
+const Product = require("../../models/grocery/product.model");
+const GroceryCategory = require("../../models/grocery/category.model");
+const GrocerySubcategory = require("../../models/grocery/subcategory.model");
+const GroceryVendorProduct = require("../../models/grocery/vendorProduct.model");
 
 // ✅ GET /catalog/:vendorId/structure
 exports.getVendorStructure = async (req, res) => {
@@ -68,7 +68,7 @@ exports.getVendorCatalogProducts = async (req, res) => {
   }
 };
 
-// ✅ GET /catalog/product/:id → now includes vendorName
+// ✅ GET /catalog/product/:id → includes vendorName
 exports.getSingleProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -88,7 +88,7 @@ exports.getSingleProduct = async (req, res) => {
 
     let vendorName = null;
     if (vendorProduct?.vendorId) {
-      const vendor = await require("../models/vendor.model").findById(vendorProduct.vendorId);
+      const vendor = await Vendor.findById(vendorProduct.vendorId);
       vendorName = vendor?.name || null;
     }
 
@@ -104,7 +104,7 @@ exports.getSingleProduct = async (req, res) => {
       categoryName: category?.name || null,
       subcategoryId: product.subcategoryId,
       subcategoryName: subcategory?.name || null,
-      vendorName, // ✅ added
+      vendorName,
       isActive: product.isActive,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
