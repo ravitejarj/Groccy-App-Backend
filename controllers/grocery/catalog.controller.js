@@ -40,24 +40,33 @@ exports.getVendorCatalogProducts = async (req, res) => {
       return res.status(400).json({ message: "subcategoryId is required" });
     }
 
-    const vendorItems = await GroceryVendorProduct.find({ vendorId, isActive: true });
-    const productIds = vendorItems.map(vp => vp.productId);
+    // Step 1: Get vendor's active + in-stock products
+    const vendorProducts = await GroceryVendorProduct.find({
+      vendorId,
+      isActive: true,
+      stock: { $gt: 0 },
+    });
 
+    const productIds = vendorProducts.map(vp => vp.productId);
+
+    // Step 2: Filter to subcategory and active master products
     const products = await Product.find({
       _id: { $in: productIds },
       subcategoryId,
-      isActive: true
+      isActive: true,
     });
 
+    // Step 3: Merge price/stock from vendor product
     const enrichedProducts = products.map(product => {
-      const vendorData = vendorItems.find(
+      const vendorData = vendorProducts.find(
         vp => vp.productId.toString() === product._id.toString()
       );
 
       return {
         ...product.toObject(),
-        price: vendorData?.price,
-        stock: vendorData?.stock,
+        price: vendorData?.price || null,
+        stock: vendorData?.stock || 0,
+        vendorProductId: vendorData?._id || null,
       };
     });
 
@@ -68,20 +77,25 @@ exports.getVendorCatalogProducts = async (req, res) => {
   }
 };
 
+
 // ✅ GET /catalog/product/:id → includes vendorName
 exports.getSingleProduct = async (req, res) => {
   try {
     const { id } = req.params;
+    const { vendorId } = req.query;
 
     const product = await Product.findById(id);
     if (!product || !product.isActive) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const vendorProduct = await GroceryVendorProduct.findOne({
-      productId: id,
-      isActive: true,
-    });
+    let vendorProduct = null;
+    if (vendorId) {
+      vendorProduct = await GroceryVendorProduct.findOne({
+        productId: id,
+        vendorId,
+      });
+    }
 
     const category = await GroceryCategory.findById(product.categoryId);
     const subcategory = await GrocerySubcategory.findById(product.subcategoryId);
@@ -98,7 +112,7 @@ exports.getSingleProduct = async (req, res) => {
       description: product.description,
       images: product.images,
       price: vendorProduct?.price || null,
-      stock: vendorProduct?.stock || 0,
+      stock: vendorProduct?.stock ?? 0,
       weight: vendorProduct?.weight || "1 lb",
       categoryId: product.categoryId,
       categoryName: category?.name || null,
@@ -106,6 +120,7 @@ exports.getSingleProduct = async (req, res) => {
       subcategoryName: subcategory?.name || null,
       vendorName,
       isActive: product.isActive,
+      sold: !vendorProduct || vendorProduct.stock === 0 || !vendorProduct.isActive,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     });
