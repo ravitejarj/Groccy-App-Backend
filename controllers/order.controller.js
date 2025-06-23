@@ -1,100 +1,84 @@
-const Order = require("../models/order.model");
-const Vendor = require("../models/vendor.model");
-const Cart = require("../models/cart.model");
-const VendorProduct = require("../models/grocery/vendorProduct.model"); // ✅ New import
+const Cart = require('../models/cart.model');
+const Order = require('../models/order.model');
+const UserAddress = require('../models/address.model');
+const Vendor = require('../models/vendor.model');
+const { calculateDistanceInMiles } = require('../utils/distance');
 
-exports.createOrder = async (req, res) => {
+exports.placeOrder = async (req, res) => {
   try {
-    const { userId, vendorId, items, total, paymentMethod, street, city, state, zipCode } = req.body;
+    const { userId, vendorId, addressId, paymentMethod = 'card' } = req.body;
 
+    // 1. Get the cart
+    const cart = await Cart.findOne({ userId, vendorId });
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: 'Cart is empty' });
+    }
+
+    // 2. Get the address
+    const address = await UserAddress.findById(addressId);
+    if (!address) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+
+    // 3. Get the vendor
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    // 4. Check delivery distance
+    const distance = calculateDistanceInMiles(
+      address.lat,
+      address.lng,
+      vendor.latitude,
+      vendor.longitude
+    );
+
+    if (distance > vendor.deliveryRadiusInMiles) {
+      return res.status(403).json({
+        message: `Your address is ${distance.toFixed(2)} miles away, which exceeds the vendor's delivery radius of ${vendor.deliveryRadiusInMiles} miles.`,
+      });
+    }
+
+    // 5. Calculate total
+    const total = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    // 6. Create new order
     const newOrder = new Order({
       userId,
       vendorId,
-      items,
+      items: cart.items,
       total,
       paymentMethod,
-      street,
-      city,
-      state,
-      zipCode,
-      status: "Placed",
+      street: address.street,
+      city: address.city,
+      state: address.state,
+      zipCode: address.zipCode,
     });
 
-    const savedOrder = await newOrder.save();
+    await newOrder.save();
 
-    // Optional: clear cart after order
-    await Cart.deleteMany({ userId, vendorId });
+    // 7. Clear cart
+    await Cart.deleteOne({ _id: cart._id });
 
-    res.status(201).json(savedOrder);
-  } catch (err) {
-    console.error("Error creating order:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(201).json({
+      message: 'Order placed successfully',
+      orderId: newOrder._id,
+      total,
+    });
+  } catch (error) {
+    console.error('Place order error:', error);
+    res.status(500).json({ message: 'Failed to place order', error });
   }
 };
 
-exports.getOrdersByUser = async (req, res) => {
+exports.getUserOrders = async (req, res) => {
   try {
     const { userId } = req.params;
-
     const orders = await Order.find({ userId }).sort({ createdAt: -1 });
-
-    const enrichedOrders = await Promise.all(
-      orders.map(async (order) => {
-        const vendor = await Vendor.findById(order.vendorId);
-        const detailedItems = await Promise.all(
-          order.items.map(async (item) => {
-            const product = await VendorProduct.findById(item.productId);
-            return {
-              ...item.toObject(),
-              image: product?.images?.[0] || null,
-              description: product?.description || "",
-            };
-          })
-        );
-
-        return {
-          ...order.toObject(),
-          vendorName: vendor?.name || "Unknown Vendor",
-          vendorLogo: vendor?.logo || null,
-          items: detailedItems,
-        };
-      })
-    );
-
-    res.json(enrichedOrders);
-  } catch (err) {
-    console.error("Error fetching user orders:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-exports.getOrdersByVendor = async (req, res) => {
-  try {
-    const { vendorId } = req.params;
-
-    const orders = await Order.find({ vendorId }).sort({ createdAt: -1 });
-
-    res.json(orders);
-  } catch (err) {
-    console.error("Error fetching vendor orders:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-exports.updateOrderStatus = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { status } = req.body;
-
-    const updatedOrder = await Order.findByIdAndUpdate(
-      orderId,
-      { status },
-      { new: true }
-    );
-
-    res.json(updatedOrder);
-  } catch (err) {
-    console.error("Error updating order status:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    res.status(500).json({ message: 'Failed to fetch user orders' });
   }
 };

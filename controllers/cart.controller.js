@@ -1,5 +1,5 @@
 const Cart = require("../models/cart.model");
-const VendorProduct = require("../models/grocery/vendorProduct.model"); // ✅ using correct model
+const VendorProduct = require("../models/grocery/groceryvendorproduct.model");
 
 // ✅ Add or update cart item
 const addToCart = async (req, res) => {
