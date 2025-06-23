@@ -1,6 +1,6 @@
-const VendorProduct = require("../models/groceryVendorProduct.model");
+const VendorProduct = require("../../models/grocery/vendorProduct.model");
 
-// Create a new product
+// ✅ Create a new vendor product
 exports.createVendorProduct = async (req, res) => {
   try {
     const product = new VendorProduct(req.body);
@@ -11,7 +11,7 @@ exports.createVendorProduct = async (req, res) => {
   }
 };
 
-// Get all products (optionally filter by vendor)
+// ✅ Get all vendor products (or filter by vendorId)
 exports.getVendorProducts = async (req, res) => {
   try {
     const filter = req.query.vendorId ? { vendorId: req.query.vendorId } : {};
@@ -22,7 +22,7 @@ exports.getVendorProducts = async (req, res) => {
   }
 };
 
-// Get one product
+// ✅ Get one vendor product by ID
 exports.getVendorProductById = async (req, res) => {
   try {
     const product = await VendorProduct.findById(req.params.id);
@@ -33,7 +33,7 @@ exports.getVendorProductById = async (req, res) => {
   }
 };
 
-// Update product
+// ✅ Update vendor product
 exports.updateVendorProduct = async (req, res) => {
   try {
     const updated = await VendorProduct.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -43,39 +43,12 @@ exports.updateVendorProduct = async (req, res) => {
   }
 };
 
-// Delete product
+// ✅ Delete vendor product
 exports.deleteVendorProduct = async (req, res) => {
   try {
     await VendorProduct.findByIdAndDelete(req.params.id);
-    res.json({ message: "Product deleted" });
+    res.json({ message: "Vendor product deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
-};
-
-
-// Search vendor products by name only (from groceryvendorproducts)
-exports.searchVendorProducts = async (req, res) => {
-  try {
-    const { vendorId, query } = req.query;
-
-    if (!vendorId || !query) {
-      return res.status(400).json({ message: "Missing vendorId or query" });
-    }
-
-    const regex = new RegExp(query, "i");
-
-    const products = await VendorProduct.find({
-      vendorId,
-      isActive: true,
-      name: { $regex: regex },
-    })
-      .select("_id productId name price stock") // ✅ add productId
-      .limit(5);
-
-    res.json(products);
-  } catch (err) {
-    console.error("Search error:", err);
-    res.status(500).json({ message: "Server error" });
   }
 };

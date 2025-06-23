@@ -1,9 +1,8 @@
-const Order = require('../models/order.model');
-const GroceryVendorProduct = require('../models/groceryVendorProduct.model');
-const RestaurantVendorProduct = require('../models/restaurantVendorProduct.model');
-const Product = require('../models/Product');
+const Order = require("../models/order.model");
+const GroceryVendorProduct = require("../models/grocery/vendorProduct.model");
+const RestaurantVendorProduct = require("../models/restaurantVendorProduct.model");
 
-exports.getOrdersTabData = async (req, res) => {
+const getOrdersTabData = async (req, res) => {
   try {
     const userId = req.params.userId;
     const orders = await Order.find({ userId }).sort({ createdAt: -1 });
@@ -20,15 +19,11 @@ exports.getOrdersTabData = async (req, res) => {
               type = 'restaurant';
             }
 
-            const masterProduct = vendorProduct
-              ? await Product.findById(vendorProduct.productId)
-              : null;
-
             return {
-              name: item.name,
+              name: item.name || vendorProduct?.name || 'Unknown',
               quantity: item.quantity,
               price: item.price,
-              image: masterProduct?.images?.[0] || item.image || 'https://res.cloudinary.com/dh5liqius/image/upload/v1716406939/groccy/temp/dummy.png',
+              image: vendorProduct?.images?.[0] || item.image || 'https://res.cloudinary.com/dh5liqius/image/upload/v1716406939/groccy/temp/dummy.png',
               type,
             };
           })
@@ -50,7 +45,11 @@ exports.getOrdersTabData = async (req, res) => {
 
     res.json(enrichedOrders);
   } catch (err) {
-    console.error('❌ getOrdersTabData error:', err);
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    console.error("❌ getOrdersTabData error:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
   }
+};
+
+module.exports = {
+  getOrdersTabData,
 };

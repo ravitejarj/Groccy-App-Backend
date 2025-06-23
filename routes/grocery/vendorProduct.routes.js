@@ -6,26 +6,22 @@ const {
   getVendorProductById,
   updateVendorProduct,
   deleteVendorProduct,
-  searchVendorProducts,
-} = require("../controllers/vendorProduct.controller");
-const verifyToken = require("../middleware/authMiddleware");
+} = require("../../controllers/grocery/vendorProduct.controller");
+const verifyToken = require("../../middleware/authMiddleware");
 
-// Add product
+// ✅ Create vendor product
 router.post("/", verifyToken, createVendorProduct);
 
-// Get all or filter by vendor
+// ✅ Get all vendor products (optionally filter by vendorId)
 router.get("/", getVendorProducts);
 
-// Search products by vendorId + query
-router.get("/search", searchVendorProducts);
-
-// Get one by ID
+// ✅ Get one vendor product by ID
 router.get("/:id", getVendorProductById);
 
-// Update
+// ✅ Update vendor product
 router.put("/:id", verifyToken, updateVendorProduct);
 
-// Delete
+// ✅ Delete vendor product
 router.delete("/:id", verifyToken, deleteVendorProduct);
 
 module.exports = router;

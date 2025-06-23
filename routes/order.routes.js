@@ -1,16 +1,17 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const orderController = require('../controllers/order.controller');
-const ordersTabController = require('../controllers/ordersTab.controller'); // ✅ added
 
-// Existing Routes
-router.post('/', orderController.createOrder);
-router.get('/user/:userId', orderController.getUserOrders);
-router.get('/vendor/:vendorId', orderController.getVendorOrders);
-router.put('/:id', orderController.updateOrderStatus);
-router.get('/by-order-id/:orderId', orderController.getOrderByOrderId);
+const orderController = require("../controllers/order.controller");
+const ordersTabController = require("../controllers/ordersTab.controller");
 
-// ✅ New: Orders Tab Route
-router.get('/tab/:userId', ordersTabController.getOrdersTabData);
+// Main order routes
+router.post("/", orderController.createOrder);
+router.get("/user/:userId", orderController.getOrdersByUser);
+router.get("/vendor/:vendorId", orderController.getOrdersByVendor);
+router.put("/:orderId", orderController.updateOrderStatus);
+router.get("/by-order-id/:orderId", orderController.getOrderByOrderId);
+
+// ✅ Orders Tab Route — use direct object, not destructure
+router.get("/tab/:userId", ordersTabController.getOrdersTabData);
 
 module.exports = router;

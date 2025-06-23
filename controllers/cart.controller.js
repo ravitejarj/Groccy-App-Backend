@@ -1,9 +1,8 @@
 const Cart = require("../models/cart.model");
-const VendorProduct = require("../models/groceryVendorProduct.model");
-const Product = require("../models/Product");
+const VendorProduct = require("../models/grocery/vendorProduct.model"); // ✅ using correct model
 
-// ✅ Add or update cart item (always add +1)
-exports.addToCart = async (req, res) => {
+// ✅ Add or update cart item
+const addToCart = async (req, res) => {
   try {
     const { userId, vendorId, productId, name, price } = req.body;
 
@@ -50,8 +49,8 @@ exports.addToCart = async (req, res) => {
   }
 };
 
-// ✅ Get cart with product image
-exports.getCartByUser = async (req, res) => {
+// ✅ Get cart with image and description
+const getCartByUser = async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -61,10 +60,13 @@ exports.getCartByUser = async (req, res) => {
       cart.map(async (entry) => {
         const detailedItems = await Promise.all(
           entry.items.map(async (item) => {
-            const productMaster = await Product.findById(item.productId);
+            const productMaster = await VendorProduct.findById(item.productId);
             return {
               ...item.toObject(),
               image: productMaster?.images?.[0] || null,
+              description: productMaster?.description || "",
+              categoryId: productMaster?.categoryId || null,
+              subcategoryId: productMaster?.subcategoryId || null,
             };
           })
         );
@@ -84,7 +86,7 @@ exports.getCartByUser = async (req, res) => {
 };
 
 // ✅ Update item quantity
-exports.updateCartItem = async (req, res) => {
+const updateCartItem = async (req, res) => {
   try {
     const { userId, vendorId, productId, quantity } = req.body;
 
@@ -99,7 +101,6 @@ exports.updateCartItem = async (req, res) => {
     if (!item) return res.status(404).json({ error: "Item not found" });
 
     if (quantity <= 0) {
-      // Optional: remove item if quantity is zero
       cart.items = cart.items.filter((i) => i.productId.toString() !== productId);
     } else {
       item.quantity = quantity;
@@ -119,7 +120,7 @@ exports.updateCartItem = async (req, res) => {
 };
 
 // ✅ Remove single item
-exports.removeCartItem = async (req, res) => {
+const removeCartItem = async (req, res) => {
   try {
     const { userId, vendorId, productId } = req.body;
 
@@ -141,8 +142,8 @@ exports.removeCartItem = async (req, res) => {
   }
 };
 
-// ✅ Clear all items
-exports.clearCart = async (req, res) => {
+// ✅ Clear entire cart
+const clearCart = async (req, res) => {
   try {
     const { userId } = req.params;
     await Cart.deleteMany({ userId });
@@ -151,4 +152,13 @@ exports.clearCart = async (req, res) => {
     console.error("Clear cart error:", err);
     res.status(500).json({ error: "Failed to clear cart" });
   }
+};
+
+// ✅ Export all
+module.exports = {
+  addToCart,
+  getCartByUser,
+  updateCartItem,
+  removeCartItem,
+  clearCart,
 };

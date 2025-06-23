@@ -1,128 +1,100 @@
-const Order = require('../models/order.model');
-const Cart = require('../models/cart.model');
-const UserAddress = require('../models/address.model');
-const Product = require('../models/Product'); // ✅ Added
+const Order = require("../models/order.model");
+const Vendor = require("../models/vendor.model");
+const Cart = require("../models/cart.model");
+const VendorProduct = require("../models/grocery/vendorProduct.model"); // ✅ New import
 
-// ✅ Create Order from Cart
 exports.createOrder = async (req, res) => {
   try {
-    const {
+    const { userId, vendorId, items, total, paymentMethod, street, city, state, zipCode } = req.body;
+
+    const newOrder = new Order({
       userId,
-      paymentMethod = 'Card',
-      cardLast4,           // ✅ New
-      cardBrand            // ✅ New
-    } = req.body;
+      vendorId,
+      items,
+      total,
+      paymentMethod,
+      street,
+      city,
+      state,
+      zipCode,
+      status: "Placed",
+    });
 
-    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+    const savedOrder = await newOrder.save();
 
-    const cart = await Cart.findOne({ userId });
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ error: 'Cart is empty' });
-    }
+    // Optional: clear cart after order
+    await Cart.deleteMany({ userId, vendorId });
 
-    const address = await UserAddress.findOne({ userId });
-    if (!address) {
-      return res.status(400).json({ error: 'No address found' });
-    }
+    res.status(201).json(savedOrder);
+  } catch (err) {
+    console.error("Error creating order:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
-    // ✅ Enrich cart items with image
-    const enrichedItems = await Promise.all(
-      cart.items.map(async (item) => {
-        const product = await Product.findById(item.productId);
-        const image = product?.images?.[0] || null;
+exports.getOrdersByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+
+    const enrichedOrders = await Promise.all(
+      orders.map(async (order) => {
+        const vendor = await Vendor.findById(order.vendorId);
+        const detailedItems = await Promise.all(
+          order.items.map(async (item) => {
+            const product = await VendorProduct.findById(item.productId);
+            return {
+              ...item.toObject(),
+              image: product?.images?.[0] || null,
+              description: product?.description || "",
+            };
+          })
+        );
 
         return {
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image,
+          ...order.toObject(),
+          vendorName: vendor?.name || "Unknown Vendor",
+          vendorLogo: vendor?.logo || null,
+          items: detailedItems,
         };
       })
     );
 
-    // ✅ Generate order ID
-    const today = new Date();
-    const datePart = today.toISOString().slice(2, 10).replace(/-/g, '');
-    const randomPart = Math.floor(100000 + Math.random() * 900000);
-    const generatedOrderId = `ORD-${datePart}-${randomPart}`;
-
-    const order = new Order({
-      orderId: generatedOrderId,
-      userId,
-      vendorId: cart.vendorId,
-      items: enrichedItems,
-      total: cart.total,
-      subTotal: cart.total,
-      deliveryFee: 2.0,
-      taxes: 0.5,
-      paymentMethod,
-      cardLast4,          // ✅ Save last 4 digits
-      cardBrand,          // ✅ Save brand
-      status: 'confirmed',
-      street: address.street,
-      apartment: address.apartment,
-      city: address.city,
-      state: address.state,
-      zipCode: address.zipCode,
-    });
-
-    await order.save();
-    await Cart.deleteMany({ userId });
-
-    res.status(201).json({ success: true, order });
+    res.json(enrichedOrders);
   } catch (err) {
-    console.error('❌ createOrder error:', err);
-    res.status(500).json({ error: 'Failed to create order' });
+    console.error("Error fetching user orders:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// ✅ Get All Orders for a User
-exports.getUserOrders = async (req, res) => {
+exports.getOrdersByVendor = async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.params.userId }).sort({ createdAt: -1 });
+    const { vendorId } = req.params;
+
+    const orders = await Order.find({ vendorId }).sort({ createdAt: -1 });
+
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching vendor orders:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// ✅ Get All Orders for a Vendor
-exports.getVendorOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({ vendorId: req.params.vendorId }).sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// ✅ Update Order Status
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const updated = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status, updatedAt: new Date() },
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      { status },
       { new: true }
     );
-    res.json(updated);
+
+    res.json(updatedOrder);
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// ✅ Get Order by `orderId` (for OrderSuccess screen)
-exports.getOrderByOrderId = async (req, res) => {
-  try {
-    const order = await Order.findOne({ orderId: req.params.orderId })
-      .populate('vendorId', 'name')
-      .populate('items.productId', 'name');
-
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-
-    res.json(order);
-  } catch (err) {
-    console.error('❌ getOrderByOrderId error:', err);
-    res.status(500).json({ error: 'Failed to fetch order' });
+    console.error("Error updating order status:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
