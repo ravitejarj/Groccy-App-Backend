@@ -1,4 +1,3 @@
-// routes/grocery/groceryVendorProduct.routes.js
 const express = require('express');
 const router = express.Router();
 const productController = require('../../controllers/grocery/groceryVendorProduct.controller');
@@ -11,5 +10,8 @@ router.get('/vendor/:vendorId/product/:productId', productController.getVendorPr
 
 // 📦 Get subcategories for a vendor-category combination
 router.get('/:vendorId/subcategories/:categoryId', productController.getVendorSubcategoriesByCategory);
+
+// 🍱 Get products by vendor + subcategory
+router.get('/:vendorId/subcategory/:subcategoryId/products', productController.getVendorProductsBySubcategory);
 
 module.exports = router;

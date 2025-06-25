@@ -33,18 +33,12 @@ const getVendorSubcategoriesByCategory = async (req, res) => {
   try {
     const { vendorId, categoryId } = req.params;
 
-    // Get all unique subcategoryIds from vendor's products in the given category
     const products = await GroceryVendorProduct.find({ vendorId, categoryId });
-
     const subcategoryIds = [
       ...new Set(products.map((p) => p.subcategoryId).filter(Boolean))
     ];
 
-    // Fetch subcategory details
-    const subcategories = await GrocerySubcategory.find({
-      _id: { $in: subcategoryIds }
-    });
-
+    const subcategories = await GrocerySubcategory.find({ _id: { $in: subcategoryIds } });
     res.json({ subcategories });
   } catch (err) {
     console.error('Error fetching subcategories:', err);
@@ -52,9 +46,27 @@ const getVendorSubcategoriesByCategory = async (req, res) => {
   }
 };
 
-// ✅ Export all controller functions
+// ✅ Get products by vendor and subcategory
+const getVendorProductsBySubcategory = async (req, res) => {
+  try {
+    const { vendorId, subcategoryId } = req.params;
+
+    const products = await GroceryVendorProduct.find({
+      vendorId,
+      subcategoryId,
+      isActive: true,
+    });
+
+    res.json({ products });
+  } catch (err) {
+    console.error('Error fetching products by subcategory:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 module.exports = {
   getVendorProducts,
   getVendorProductById,
   getVendorSubcategoriesByCategory,
+  getVendorProductsBySubcategory,
 };
