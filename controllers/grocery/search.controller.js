@@ -4,15 +4,13 @@ const GroceryVendorProduct = require('../../models/grocery/groceryvendorproduct.
 exports.searchVendorProducts = async (req, res) => {
   try {
     const { vendorId } = req.params;
-    const { search, categoryId, subcategoryId } = req.query;
+    const { search } = req.query;
 
     const query = {
       vendorId,
       isActive: true,
     };
 
-    if (categoryId) query.categoryId = categoryId;
-    if (subcategoryId) query.subcategoryId = subcategoryId;
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -20,7 +18,10 @@ exports.searchVendorProducts = async (req, res) => {
       ];
     }
 
-    const products = await GroceryVendorProduct.find(query);
+    const products = await GroceryVendorProduct.find(query)
+      .limit(10)
+      .select('_id name price images');
+
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: 'Search failed', error });

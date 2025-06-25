@@ -31,7 +31,7 @@ app.use("/api/orders", orderRoutes);
 
 // ✅ New grocery routes
 app.use('/api', catalogRoutes);
-app.use('/api', searchRoutes);
+app.use('/api/grocery/search', searchRoutes);
 app.use('/api', groceryProductRoutes);
 
 // Health check
