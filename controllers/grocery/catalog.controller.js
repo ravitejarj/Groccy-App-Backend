@@ -8,27 +8,45 @@ exports.getCatalogStructureByVendor = async (req, res) => {
     const { vendorId } = req.params;
     const redisKey = `catalog_structure_${vendorId}`;
 
-    // Check cache
+    // 🔁 Check cache
     const cached = await redisClient.get(redisKey);
     if (cached) {
       return res.json(JSON.parse(cached));
     }
 
+    // 📦 Get all products for this vendor
     const products = await GroceryVendorProduct.find({ vendorId });
 
-    const categoryIds = [...new Set(products.map(p => p.categoryId))];
-    const subcategoryIds = [...new Set(products.map(p => p.subcategoryId))];
+    // 🧠 Extract used category and subcategory IDs
+    const usedCategoryIds = new Set(products.map(p => p.categoryId));
+    const usedSubcategoryIds = new Set(products.map(p => p.subcategoryId));
 
-    const categories = await GroceryCategory.find({ _id: { $in: categoryIds } }).sort({ displayOrder: 1 });
-    const subcategories = await GrocerySubcategory.find({ _id: { $in: subcategoryIds } }).sort({ displayOrder: 1 });
+    // ✅ Get ALL categories and subcategories (sorted)
+    const categories = await GroceryCategory.find().sort({ displayOrder: 1 });
+    const subcategories = await GrocerySubcategory.find().sort({ displayOrder: 1 });
 
-    const response = { categories, subcategories };
+    // 🟢 Add `hasProducts` flag to each category and subcategory
+    const enrichedCategories = categories.map(cat => ({
+      ...cat.toObject(),
+      hasProducts: usedCategoryIds.has(cat._id),
+    }));
 
-    // Cache it for 10 minutes (600 sec)
+    const enrichedSubcategories = subcategories.map(sub => ({
+      ...sub.toObject(),
+      hasProducts: usedSubcategoryIds.has(sub._id),
+    }));
+
+    const response = {
+      categories: enrichedCategories,
+      subcategories: enrichedSubcategories,
+    };
+
+    // 💾 Cache for 10 minutes
     await redisClient.setEx(redisKey, 600, JSON.stringify(response));
 
     res.json(response);
   } catch (error) {
+    console.error('❌ Error in getCatalogStructureByVendor:', error);
     res.status(500).json({ message: 'Failed to load catalog structure', error });
   }
 };

@@ -17,7 +17,7 @@ const orderRoutes = require("./routes/order.routes");
 // ✅ Grocery-specific
 const searchRoutes = require('./routes/grocery/search.routes');
 const catalogRoutes = require('./routes/grocery/catalog.routes');
-const groceryProductRoutes = require('./routes/grocery/groceryVendorProduct.routes');
+const groceryVendorProductRoutes = require('./routes/grocery/groceryVendorProduct.routes');
 
 // Use all routes
 app.use("/api/auth", authRoutes);
@@ -30,9 +30,9 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 
 // ✅ New grocery routes
-app.use('/api', catalogRoutes);
+app.use('/api/grocery/catalog', catalogRoutes);
 app.use('/api/grocery/search', searchRoutes);
-app.use('/api', groceryProductRoutes);
+app.use('/api/grocery', groceryVendorProductRoutes);
 
 // Health check
 app.get("/", (req, res) => res.send("Groccy backend running"));
