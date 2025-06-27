@@ -27,3 +27,33 @@ exports.searchVendorProducts = async (req, res) => {
     res.status(500).json({ message: 'Search failed', error });
   }
 };
+
+// 🔍 Search products by vendor + category + keyword
+exports.searchVendorProductsInCategory = async (req, res) => {
+  try {
+    const { vendorId, categoryId } = req.params;
+    const { search } = req.query;
+
+    const query = {
+      vendorId,
+      categoryId,
+      isActive: true,
+    };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const products = await GroceryVendorProduct.find(query)
+      .limit(10)
+      .select('_id name price images');
+
+    res.json(products);
+  } catch (error) {
+    console.error('❌ Error in searchVendorProductsInCategory:', error);
+    res.status(500).json({ message: 'Search failed', error });
+  }
+};
