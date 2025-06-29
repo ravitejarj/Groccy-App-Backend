@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const GroceryVendorProduct = require('../../models/grocery/groceryvendorproduct.model');
 const GrocerySubcategory = require('../../models/grocery/grocerysubcategory.model');
+const GroceryCategory = require('../../models/grocery/grocerycategory.model'); // ✅ added
 
 // ✅ Get all products for a vendor
 const getVendorProducts = async (req, res) => {
@@ -33,13 +35,27 @@ const getVendorSubcategoriesByCategory = async (req, res) => {
   try {
     const { vendorId, categoryId } = req.params;
 
-    const products = await GroceryVendorProduct.find({ vendorId, categoryId });
+    // ✅ FIX: proper type casting
+    const products = await GroceryVendorProduct.find({
+      vendorId: new mongoose.Types.ObjectId(vendorId),
+      categoryId: categoryId.toString(),
+    });
+
     const subcategoryIds = [
-      ...new Set(products.map((p) => p.subcategoryId).filter(Boolean))
+      ...new Set(products.map((p) => p.subcategoryId).filter(Boolean)),
     ];
 
-    const subcategories = await GrocerySubcategory.find({ _id: { $in: subcategoryIds } });
-    res.json({ subcategories });
+    const subcategories = await GrocerySubcategory.find({
+      _id: { $in: subcategoryIds },
+    });
+
+    // ✅ Include category name for frontend sorting
+    const category = await GroceryCategory.findById(categoryId);
+
+    res.json({
+      categoryName: category?.name || '',
+      subcategories,
+    });
   } catch (err) {
     console.error('Error fetching subcategories:', err);
     res.status(500).json({ error: 'Server error' });
