@@ -13,6 +13,7 @@ const notificationRoutes = require("./routes/notification.routes");
 const vendorRoutes = require("./routes/vendor.routes");
 const cartRoutes = require("./routes/cart.routes");
 const orderRoutes = require("./routes/order.routes");
+const orderTabRoutes = require("./routes/orderTab.routes");
 
 // ✅ Grocery-specific
 const searchRoutes = require('./routes/grocery/search.routes');
@@ -28,6 +29,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/vendors", vendorRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/order-tab", orderTabRoutes);
 
 // ✅ New grocery routes
 app.use('/api/grocery/catalog', catalogRoutes);
