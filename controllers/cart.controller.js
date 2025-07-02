@@ -1,7 +1,7 @@
 const Cart = require("../models/cart.model");
 const VendorProduct = require("../models/grocery/groceryvendorproduct.model");
 
-// ✅ Add or update cart item
+// ✅ Add or update cart item without replacing full cart
 const addToCart = async (req, res) => {
   try {
     const { userId, vendorId, productId, name, price } = req.body;
@@ -15,9 +15,11 @@ const addToCart = async (req, res) => {
       return res.status(400).json({ error: "Invalid price format" });
     }
 
+    // 🔍 Check if user already has a cart for this vendor
     let cart = await Cart.findOne({ userId, vendorId });
 
     if (!cart) {
+      // 🆕 New cart for this vendor
       cart = new Cart({
         userId,
         vendorId,
@@ -25,16 +27,23 @@ const addToCart = async (req, res) => {
         total: parsedPrice,
       });
     } else {
-      const existingItem = cart.items.find(
-        (item) => item.productId.toString() === productId
+      // ✅ Check if product already in cart
+      const existingIndex = cart.items.findIndex(
+        (i) => i.productId.toString() === productId
       );
 
-      if (existingItem) {
-        existingItem.quantity += 1;
+      if (existingIndex > -1) {
+        cart.items[existingIndex].quantity += 1;
       } else {
-        cart.items.push({ productId, name, price: parsedPrice, quantity: 1 });
+        cart.items.push({
+          productId,
+          name,
+          price: parsedPrice,
+          quantity: 1,
+        });
       }
 
+      // 🧮 Recalculate total
       cart.total = cart.items.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
@@ -49,8 +58,8 @@ const addToCart = async (req, res) => {
   }
 };
 
-// ✅ Get cart with image and description
-const getCartByUser = async (req, res) => {
+// ✅ Get cart with image and description (all vendor carts)
+const getAllCartsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -82,6 +91,37 @@ const getCartByUser = async (req, res) => {
   } catch (err) {
     console.error("Get cart error:", err);
     res.status(500).json({ error: "Failed to fetch cart" });
+  }
+};
+
+// ✅ NEW: Get cart for specific user and vendor
+const getCartByUserAndVendor = async (req, res) => {
+  try {
+    const { userId, vendorId } = req.params;
+
+    const cart = await Cart.findOne({ userId, vendorId });
+    if (!cart) return res.json(null);
+
+    const detailedItems = await Promise.all(
+      cart.items.map(async (item) => {
+        const productMaster = await VendorProduct.findById(item.productId);
+        return {
+          ...item.toObject(),
+          image: productMaster?.images?.[0] || null,
+          description: productMaster?.description || '',
+          categoryId: productMaster?.categoryId || null,
+          subcategoryId: productMaster?.subcategoryId || null,
+        };
+      })
+    );
+
+    res.json({
+      ...cart.toObject(),
+      items: detailedItems,
+    });
+  } catch (err) {
+    console.error('Get vendor cart error:', err);
+    res.status(500).json({ error: 'Failed to fetch vendor cart' });
   }
 };
 
@@ -157,7 +197,8 @@ const clearCart = async (req, res) => {
 // ✅ Export all
 module.exports = {
   addToCart,
-  getCartByUser,
+  getAllCartsByUser,          // old route (optional)
+  getCartByUserAndVendor,     // new vendor-specific cart
   updateCartItem,
   removeCartItem,
   clearCart,

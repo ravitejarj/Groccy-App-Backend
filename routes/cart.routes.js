@@ -6,8 +6,11 @@ const verifyToken = require('../middleware/authMiddleware'); // ✅ import
 // ➕ Add or update item in cart
 router.post('/add', verifyToken, cartController.addToCart);
 
-// 🧾 Get cart by user ID
-router.get('/user/:userId', verifyToken, cartController.getCartByUser);
+// 🧾 Get ALL carts by user (legacy, returns array)
+router.get('/user/:userId', verifyToken, cartController.getAllCartsByUser);
+
+// 🧾 ✅ Get specific vendor cart for user
+router.get('/user/:userId/vendor/:vendorId', verifyToken, cartController.getCartByUserAndVendor);
 
 // 🖊️ Update quantity of an item
 router.put('/update', verifyToken, cartController.updateCartItem);
