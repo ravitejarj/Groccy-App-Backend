@@ -1,103 +1,47 @@
-const User = require("../models/user.model.js");
-const bcrypt = require("bcryptjs");
+const User = require("../models/user.model");
+const redisClient = require("../config/redis");
 const jwt = require("jsonwebtoken");
 
-// Register User
-exports.register = async (req, res) => {
-  try {
-    const { firstName, lastName, email, phone, password } = req.body;
+const generateOtp = () => Math.floor(1000 + Math.random() * 9000).toString();
+const OTP_EXPIRY = 300; // 5 minutes
 
-    const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+// ✅ Send OTP (dummy)
+exports.sendOtp = async (req, res) => {
+  const { phone } = req.body;
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+  if (!phone) return res.status(400).json({ message: "Phone number required" });
 
-    const user = new User({
-      firstName,
-      lastName,
-      email,
-      phone,
-      passwordHash: hashedPassword,
-      isVerified: true,
-    });
+  const otp = generateOtp();
+  await redisClient.setEx(`otp:${phone}`, OTP_EXPIRY, otp);
 
-    await user.save();
-
-    return res.status(201).json({ message: "User registered successfully." });
-  } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
-  }
+  console.log(`📲 [DUMMY OTP] for ${phone}: ${otp}`);
+  res.status(200).json({ message: "OTP sent successfully (dummy)", otp }); // Show OTP for dev only
 };
 
-// Verify OTP (skipped in development)
+// ✅ Verify OTP and Login or Create User
 exports.verifyOtp = async (req, res) => {
-  return res.status(200).json({ message: "OTP verification skipped in dev mode." });
-};
+  const { phone, otp } = req.body;
 
-// Login User
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  if (!phone || !otp) return res.status(400).json({ message: "Phone and OTP required" });
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return res.status(200).json({
-      message: "Login successful",
-      token,
-      user: {
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        isVerified: user.isVerified,
-      },
-    });
-  } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+  const storedOtp = await redisClient.get(`otp:${phone}`);
+  if (!storedOtp || storedOtp !== otp) {
+    return res.status(401).json({ message: "Invalid or expired OTP" });
   }
-};
 
-// Change Password
-exports.changePassword = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { oldPassword, newPassword } = req.body;
+  let user = await User.findOne({ phone });
 
-    if (!oldPassword || !newPassword) {
-      return res.status(400).json({ message: "Both old and new passwords are required." });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found." });
-
-    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Old password is incorrect." });
-    }
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-    user.passwordHash = hashed;
-    await user.save();
-
-    return res.status(200).json({ message: "Password changed successfully." });
-  } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+  if (!user) {
+    user = await User.create({ phone });
   }
+
+  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
+
+  res.status(200).json({
+    message: "Login successful",
+    token,
+    user,
+  });
 };
