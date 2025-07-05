@@ -1,12 +1,17 @@
+// File: controllers/address.controller.js
+
 const Address = require("../models/address.model");
 
-// Create new address
+// ✅ Create new address securely (no hardcoded userId)
 exports.createAddress = async (req, res) => {
   try {
+    const userId = req.user.userId; // ✅ from JWT token
+
     const address = new Address({
       ...req.body,
-      userId: req.body.userId || '665c06e5f5177c2b4b16d2e8', // 🛠 Replace with valid test user _id
+      userId, // securely injected
     });
+
     await address.save();
     res.status(201).json(address);
   } catch (err) {
@@ -14,17 +19,17 @@ exports.createAddress = async (req, res) => {
   }
 };
 
-// Get all addresses of a user
+// ✅ Get ALL addresses of a user
 exports.getUserAddresses = async (req, res) => {
   try {
-    const address = await Address.findOne({ userId: req.params.userId });
-    res.json(address);
+    const addresses = await Address.find({ userId: req.params.userId });
+    res.json(addresses);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Update an address
+// ✅ Update an address
 exports.updateAddress = async (req, res) => {
   try {
     const updated = await Address.findByIdAndUpdate(
@@ -38,7 +43,7 @@ exports.updateAddress = async (req, res) => {
   }
 };
 
-// Delete an address
+// ✅ Delete an address
 exports.deleteAddress = async (req, res) => {
   try {
     await Address.findByIdAndDelete(req.params.id);
