@@ -32,7 +32,8 @@ exports.verifyOtp = async (req, res) => {
   let user = await User.findOne({ phone });
 
   if (!user) {
-    user = await User.create({ phone });
+    user = new User({ phone });
+    await user.save();
   }
 
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
