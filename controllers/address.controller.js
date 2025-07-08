@@ -1,53 +1,30 @@
 // File: controllers/address.controller.js
-
 const Address = require("../models/address.model");
 
-// ✅ Create new address securely (no hardcoded userId)
-exports.createAddress = async (req, res) => {
+// ✅ Get the current user's address
+exports.getMyAddress = async (req, res) => {
   try {
-    const userId = req.user.userId; // ✅ from JWT token
-
-    const address = new Address({
-      ...req.body,
-      userId, // securely injected
-    });
-
-    await address.save();
-    res.status(201).json(address);
+    const userId = req.user.userId;
+    const address = await Address.findOne({ userId });
+    if (!address) return res.status(404).json({ message: "No address found" });
+    res.json(address);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// ✅ Get ALL addresses of a user
-exports.getUserAddresses = async (req, res) => {
+// ✅ Create or update the current user's address
+exports.saveOrUpdateMyAddress = async (req, res) => {
   try {
-    const addresses = await Address.find({ userId: req.params.userId });
-    res.json(addresses);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    const userId = req.user.userId;
 
-// ✅ Update an address
-exports.updateAddress = async (req, res) => {
-  try {
-    const updated = await Address.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
+    const updatedAddress = await Address.findOneAndUpdate(
+      { userId },
+      { ...req.body, userId },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
     );
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
-// ✅ Delete an address
-exports.deleteAddress = async (req, res) => {
-  try {
-    await Address.findByIdAndDelete(req.params.id);
-    res.json({ message: "Address deleted" });
+    res.status(200).json(updatedAddress);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
